@@ -1,2 +1,5 @@
 .ipynb_checkpoints/
 output/output.csv
+output/*
+predicted/*
+data/*
