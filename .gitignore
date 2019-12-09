@@ -4,3 +4,6 @@ output/*
 predicted/*
 data/*
 tabs/*
+.idea/
+*.iml
+src/gpparser/__pycache__/
