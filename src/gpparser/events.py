@@ -2,6 +2,8 @@
 # coding: utf-8
 
 import music21
+import guitarpro
+
 
 DEAD_EVENT = 'dead'
 REST_NAME = 'R'
@@ -47,7 +49,7 @@ class EventFactory():
     def __init__(self, instrument):
         self.instrument = instrument
         
-    def create(self, note):
+    def __create_note(self, note):
         meta = {
             'type'      : note.type.name,
             'ghostNote' : int(note.effect.ghostNote),
@@ -60,3 +62,15 @@ class EventFactory():
             return DeadEvent(meta)
 
         return NoteEvent(self.instrument.get_note(note.string, note.value), meta)
+
+    def create(self, beat):
+        events = []
+        if beat.status == guitarpro.BeatStatus.rest:
+            events.append(RestEvent())
+        else:
+            for note in beat.notes[::-1]:
+                events.append(self.__create_note(note))
+
+        return events
+
+

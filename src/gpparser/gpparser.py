@@ -10,8 +10,8 @@ from music21 import duration as mduration
 
 class GpParser:
     BASS_INSTRUMENT = 'bass'
-    BASS_MIDI_INSTRUMENT = range(33, 40)
-    
+    BASS_MIDI_INSTRUMENT = range(33, 40) #https://www.midi.org/specifications/item/gm-level-1-sound-set
+
     columns = {
         #'artist'      : ''
         #'album'       : '',
@@ -37,7 +37,7 @@ class GpParser:
     }
     seperator = ','
      
-    def parse_song(self, file): 
+    def parse_song(self, file):
         song = guitarpro.parse(file)
         events = []
         track = self.__get_bass_track(song)
@@ -45,23 +45,15 @@ class GpParser:
             print('bass track not found')
             return events
 
-        bass = Instrument(self.BASS_INSTRUMENT)
+        bass = Instrument(self.BASS_INSTRUMENT, track.strings)
         eventFactory = EventFactory(bass)
-        for string in track.strings:
-            bass.add_string(str(string))
 
         for measure in track.measures:
             for voice in measure.voices:
                 for beat in voice.beats:
-                    block = Block(self.__get_duration(beat))
-                    #TODO - refactor this
-                    if beat.status == guitarpro.BeatStatus.rest:
-                        block.add_event(RestEvent())
-                    else:
-                        for note in beat.notes[::-1]:
-                            block.add_event(eventFactory.create(note))         
+                    block = self.__create_block(eventFactory, beat)
 
-                    if len(block.events):
+                    if len(block.events): #TODO - refactor this
                         result = block.to_dict()
                         for k, v in result.items():
                             result.update({k:str(v)})
@@ -71,10 +63,15 @@ class GpParser:
 
                         events.append(allColumns)
         return events
-        
+
+    def __create_block(self, eventFactory, beat):
+        block = Block(self.__get_duration(beat))
+        block.add_events(eventFactory, beat)
+
+        return block
+
     def __is_bass_midi_instrument(self, instrument):
-        #https://www.midi.org/specifications/item/gm-level-1-sound-set - id for instrument
-        if instrument in range(33, 40):
+        if instrument in self.BASS_MIDI_INSTRUMENT:
             return True
         return False
 
@@ -91,5 +88,4 @@ class GpParser:
         if beat.duration.isDotted:
             duration.dots = 1
         return float(duration.quarterLength)
-    
     

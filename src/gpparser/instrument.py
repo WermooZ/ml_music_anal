@@ -5,11 +5,14 @@ import music21
 
 class Instrument:
     tuning = []
-    def __init__(self, name):
+    def __init__(self, name, strings):
         self.name = name
         self.tuning = []
+
+        for string in strings:
+            self.add_string(str(string))
     
-    def add_string(self, note):
+    def __add_string(self, note):
         self.tuning.append(music21.note.Note(note))
     
     def get_tuning(self):

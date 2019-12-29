@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import music21 
+import music21
 from src.gpparser.events import *
 
 
@@ -10,7 +10,7 @@ class Block():
         self.duration = duration
         self.events = []
         
-    def add_event(self, event):
+    def __add_event(self, event):
         self.events.append(event)
         
     def get_chord_info(self):
@@ -38,3 +38,7 @@ class Block():
             #data['scnd_freq'] = self.events[1].frequency
             
         return data
+
+    def add_events(self, eventFactory, beat):
+        for event in eventFactory.create2(beat):
+            self.__add_event(event)
