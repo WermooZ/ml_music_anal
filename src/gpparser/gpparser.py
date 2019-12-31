@@ -2,6 +2,7 @@
 # coding: utf-8
 
 from src.gpparser.block import Block
+from src.gpparser.eventFactory import EventFactory
 from src.gpparser.events import *
 from src.gpparser.instrument import *
 import guitarpro
@@ -11,31 +12,6 @@ from music21 import duration as mduration
 class GpParser:
     BASS_INSTRUMENT = 'bass'
     BASS_MIDI_INSTRUMENT = range(33, 40) #https://www.midi.org/specifications/item/gm-level-1-sound-set
-
-    columns = {
-        #'artist'      : ''
-        #'album'       : '',
-        #'title'       : '',
-        # effect
-        'song'        : '',
-        'type'        : '',
-        'ghostNote'   : '',
-        'hammer'      : '',
-        'palmMute'    : '',
-        'slides'      : '',
-        # note
-        'duration'    : '',
-        'no_of_notes' : '',
-        'chord'       : '',
-        'root_note'   : '',
-        'root_name'   : '',
-        'root_octave' : '',
-        'root_midi' : '',
-        #'root_freq'   : '',
-        'scnd_note'   : '',
-        'scnd_freq'   : ''
-    }
-    seperator = ','
      
     def parse_song(self, file):
         song = guitarpro.parse(file)
@@ -46,27 +22,21 @@ class GpParser:
             return events
 
         bass = Instrument(self.BASS_INSTRUMENT, track.strings)
-        eventFactory = EventFactory(bass)
+        event_factory = EventFactory(bass)
 
         for measure in track.measures:
             for voice in measure.voices:
                 for beat in voice.beats:
-                    block = self.__create_block(eventFactory, beat)
-
-                    if len(block.events): #TODO - refactor this
-                        result = block.to_dict()
-                        for k, v in result.items():
-                            result.update({k:str(v)})
-
-                        allColumns = self.columns.copy()
-                        allColumns.update(result)
-
-                        events.append(allColumns)
+                    block = self.__create_block(event_factory, beat)
+                    events.append(block.to_dict())
+ 
         return events
 
-    def __create_block(self, eventFactory, beat):
-        block = Block(self.__get_duration(beat))
-        block.add_events(eventFactory, beat)
+    def __create_block(self, event_factory, beat):
+        block = Block(beat)
+        if block.is_normal_beat:
+            events = event_factory.create(beat)
+            block.add_events(events)
 
         return block
 
@@ -81,11 +51,5 @@ class GpParser:
                 return track
             
 
-    def __get_duration(self, beat):
-        tuplet = beat.duration.tuplet
-        tupletValue = tuplet.times / tuplet.enters
-        duration = mduration.Duration(4 / beat.duration.value * tupletValue)
-        if beat.duration.isDotted:
-            duration.dots = 1
-        return float(duration.quarterLength)
+
     

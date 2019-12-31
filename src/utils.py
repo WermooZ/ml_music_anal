@@ -6,13 +6,27 @@ import numpy as np
 
 NOTE_TIE = 'tie'
 NOTE_NORMAL = 'normal'
+NOTE_DEAD = 'dead'
+
+TYPE_NORMAL = 0
+TYPE_DEAD   = 1
+TYPE_TIE    = 2
+
+TYPE_DICT = {
+    'normal' : TYPE_NORMAL, 
+    'dead' : TYPE_DEAD, 
+    'tie' : TYPE_TIE
+}
+
 
 def frequency(note): 
     p1 = music21.pitch.Pitch(note.nameWithOctave)
+
     return p1.frequency
 
 def midi(note): 
     p1 = music21.pitch.Pitch(note.nameWithOctave)
+
     return p1.midi   
 
 def get_duration(beat):
@@ -21,17 +35,18 @@ def get_duration(beat):
     duration = music21.duration.Duration(4 / beat.duration.value * tupletValue)
     if beat.duration.isDotted:
         duration.dots = 1
+
     return float(duration.quarterLength)
         
 def calc_octave_range(df):
-    series = df['root_octave'].replace('', np.nan).dropna().astype(int)
+    series = df['octave'].replace('', np.nan).dropna().astype(int)
     min = series.min()
     max = series.max()
     return  min, max, max - min 
 
 def calc_note_range(song):
-    min_midi = song['root_midi'].min()
-    max_midi = song['root_midi'].max()
+    min_midi = song['midi'].min()
+    max_midi = song['midi'].max()
     min_note = music21.note.Note(min_midi).nameWithOctave
     max_note = music21.note.Note(max_midi).nameWithOctave
     
@@ -39,13 +54,14 @@ def calc_note_range(song):
 
 def get_closest_value(value, available_values):
     pos = (np.abs(available_values-value)).argmin()
+
     return available_values[pos]
 
 # strip rests on beginning and end
-def trim_nans(df, column_name="root_name"):
-    first_note = df[column_name].notna().idxmin()
-    last_note  = df[column_name].notna()[::-1].idxmax()
-    
+def trim_nans(df, column_name="octave"):
+    first_note = df[column_name].idxmin(skipna=True)
+    last_note  = df[column_name][::-1].idxmin(skipna=True) - 1
+
     return df[first_note:last_note]
 
 def merge_tied_notes(df):
@@ -68,7 +84,6 @@ def merge_tied_notes(df):
 
     return df
 
-#normalize duration
 
 def normalize_duration(df, threshold=100, max_quarter=2.0):
     #normalize octave & duration
@@ -87,20 +102,25 @@ def extract_columns(df, columns=[]):
     columns_to_remove = list(set(df.columns.values.tolist()) - set(columns))
     return df.drop(columns=columns_to_remove)
 
-#create note name
 def create_event_column(df):
     #create note name
-    df['root_octave'] = df['root_octave'].fillna('').astype(str)
-    df['note_name'] = (df['root_name'] + df['root_octave'])
+    df['octave'] = df['octave'].fillna('').astype(str)
+    df['name'] = (df['name'] + df['octave'])
     
     # create event_name
-    df['event'] = (df['note_name'] + '_'+ df['duration'].astype(str))
+    df['event'] = (df['name'] + '_'+ df['duration'].astype(str))
     
     return df
+
 def transpose_song(df, transpose_value):
-    df['root_octave'] = df['root_octave'].replace('', np.nan).fillna(0).astype(int)
-    df['root_octave'] = (df['root_octave'] - transpose_value)
-    df['root_octave'].clip(lower=0, inplace=True)
-    df['root_octave'].replace(0, '', inplace=True)
+    df['octave'] = df['octave'].replace('', np.nan).fillna(0).astype(int)
+    df['octave'] = (df['octave'] - transpose_value)
+    df['octave'].clip(lower=0, inplace=True)
+    df['octave'].replace(0, '', inplace=True)
     
     return df 
+
+#TODO types for blocks
+
+def type_to_int(df):
+    return df.replace(TYPE_DICT)

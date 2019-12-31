@@ -9,4 +9,5 @@ class OneHotEncoder():
 
     def generate_dummies(self, df, column):
         series = df[column]
+
         return  pd.get_dummies(series.apply(self.to_list).apply(pd.Series).stack()).sum(level=0)
